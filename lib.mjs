@@ -114,7 +114,7 @@ class HostQueue {
   }
 }
 
-export function createChecker({ servers, fetchImpl = fetch, concurrency = 2, gapMs = 250, retries = 5, timeoutMs = 15000 }) {
+export function createChecker({ servers, fetchImpl = fetch, concurrency = 2, gapMs = 250, retries = 6, timeoutMs = 15000 }) {
   const queues = new Map();
   const queueFor = (base) => {
     const host = new URL(base).host;
@@ -148,6 +148,7 @@ export function createChecker({ servers, fetchImpl = fetch, concurrency = 2, gap
       }
       res.body?.cancel?.();
       lastNote = res.status ? 'HTTP ' + res.status : String(res.error?.name || 'network error');
+      if (res.status === 429) q.gapMs = Math.min(Math.max(q.gapMs * 2, 500), 5000);
       const retryable = res.status === 0 || res.status === 429 || res.status >= 500;
       if (!retryable || attempt === retries) break;
       const after = Number(res.headers?.get?.('retry-after'));

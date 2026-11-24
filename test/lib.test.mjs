@@ -110,3 +110,13 @@ test('whois checker finds the server through IANA, then asks it', async () => {
   assert.equal(r.status, 'available');
   assert.deepEqual(calls, ['-h whois.iana.org zz', '-h whois.nic.example foo.zz']);
 });
+
+test('a 429 slows that registry down for the rest of the run', async () => {
+  const times = [];
+  const codes = [429, 404, 404];
+  const f = async () => { times.push(Date.now()); const c = codes.shift(); return { status: c, headers: new Headers(c === 429 ? { 'retry-after': '0' } : { 'content-type': 'application/rdap+json' }), body: null }; };
+  const check = createChecker({ servers, fetchImpl: f, gapMs: 0, concurrency: 1 });
+  await check('a.com');
+  await check('b.com');
+  assert.ok(times[2] - times[1] >= 450, 'gap after a 429 was ' + (times[2] - times[1]));
+});
