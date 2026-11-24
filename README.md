@@ -2,12 +2,12 @@
 
 <p align="center">
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/LICENSE-MIT-5C9E31?style=for-the-badge"></a>
-  <a href="https://jeangalea.com"><img alt="Built by" src="https://img.shields.io/badge/BUILT%20BY-JEAN%20GALEA-8A2BE2?style=for-the-badge"></a>
+  <a href="https://github.com/jgalea"><img alt="Built by" src="https://img.shields.io/badge/BUILT%20BY-JEAN%20GALEA-8A2BE2?style=for-the-badge"></a>
 </p>
 
 <p align="center"><b>Check hundreds of domain names at once, free, straight from the registries.</b></p>
 
-domcheck asks each registry's RDAP service whether a domain is registered. RDAP is the public lookup protocol every gTLD registry runs, so there's no API key, no account and no registrar in the middle. The list of RDAP servers comes from IANA and is cached for a day.
+domcheck asks each registry's RDAP service whether a domain is registered. RDAP is the public lookup protocol every gTLD registry runs, so there's no API key, no account and no registrar in the middle. The list of RDAP servers comes from IANA and is cached for a day. Country TLDs without RDAP, like .io, go to the registry's whois server instead, which needs the `whois` command (standard on macOS and Linux).
 
 ## Install
 
@@ -45,7 +45,7 @@ unknown   acme.so        no RDAP server for .so
 
 Before checking your names, domcheck looks up a random unregistered name in each TLD and expects the registry to say it's free. A TLD whose registry answers anything else is reported as `unknown` instead of trusted. Rate limits (HTTP 429) and server errors are retried with backoff, and requests are spaced out per registry.
 
-`available` means the registry has no record of the domain. Registries hold back some reserved and premium names, so a registrar can still refuse one or charge more for it. Country-code TLDs without an RDAP service come back as `unknown`.
+`available` means the registry has no record of the domain. Registries hold back some reserved and premium names, so a registrar can still refuse one or charge more for it. A whois reply only counts when it clearly says the name is free or shows a registration record. Anything else, such as a rate-limit message, comes back as `unknown`.
 
 The exit code is 0 when every domain got a definite answer and 1 when any came back `unknown`.
 

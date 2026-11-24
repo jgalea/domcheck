@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 import { readFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
-import { createChecker, loadBootstrap, serverFor, serversFor, tldOf, toDomains, verifyTlds } from './lib.mjs';
+import { createChecker, createWhoisChecker, loadBootstrap, serverFor, serversFor, tldOf, toDomains, verifyTlds } from './lib.mjs';
 
 const HELP = `Usage: domcheck [options] <name|domain>...
 
-Checks whether domains are registered, using RDAP (the registries' own public lookup service).
+Checks whether domains are registered, using RDAP (the registries' own public lookup service),
+and whois for the country TLDs that have no RDAP server.
 Bare names are tried against every TLD in --tlds. Names can also come from --file or stdin.
 
 Options:
@@ -65,10 +66,12 @@ for (const s of invalid) console.error('skipped, not a valid domain: ' + s);
 if (!domains.length) fail('No valid domains to check.');
 
 const servers = serversFor(await loadBootstrap(fetch, { refresh: values.refresh }));
-const check = createChecker({ servers, concurrency });
+const rdapCheck = createChecker({ servers, concurrency });
+const whoisCheck = createWhoisChecker();
+const check = (d) => (serverFor(servers, d) ? rdapCheck(d) : whoisCheck(d));
 
 const usedTlds = [...new Set(domains.map(tldOf))];
-const unreliable = !values['no-verify'] ? await verifyTlds(usedTlds.filter((t) => serverFor(servers, 'x.' + t)), check) : new Map();
+const unreliable = !values['no-verify'] ? await verifyTlds(usedTlds, check) : new Map();
 
 const results = await Promise.all(
   domains.map(async (d) => {

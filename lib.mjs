@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
+import { execFile } from 'node:child_process';
 import { join } from 'node:path';
 
 const BOOTSTRAP_URL = 'https://data.iana.org/rdap/dns.json';
@@ -172,4 +173,39 @@ export async function verifyTlds(tlds, check) {
     }),
   );
   return bad;
+}
+
+const WHOIS_FREE = /no match|not found|no data found|no entries found|status:\s*(free|available)|is available for registration|domain not registered|no object found/i;
+const WHOIS_TAKEN = /^\s*(domain name|domain|registrar|creation date|created|registered on|registry domain id)\s*:/im;
+
+function runWhois(args, timeoutMs) {
+  return new Promise((resolve) => {
+    execFile('whois', args, { timeout: timeoutMs, maxBuffer: 1 << 20 }, (err, stdout) => resolve(err && !stdout ? null : String(stdout || '')));
+  });
+}
+
+export function whoisStatus(text) {
+  if (text == null) return { status: 'unknown', note: 'whois failed' };
+  if (WHOIS_FREE.test(text)) return { status: 'available' };
+  if (WHOIS_TAKEN.test(text)) return { status: 'taken' };
+  return { status: 'unknown', note: 'whois reply not recognised' };
+}
+
+export function createWhoisChecker({ gapMs = 1000, timeoutMs = 15000, run = runWhois } = {}) {
+  const serverCache = new Map();
+  const queues = new Map();
+  const serverFor = async (tld) => {
+    if (!serverCache.has(tld)) {
+      serverCache.set(tld, run(['-h', 'whois.iana.org', tld], timeoutMs).then((t) => (t || '').match(/^whois:\s*(\S+)/im)?.[1] || null));
+    }
+    return serverCache.get(tld);
+  };
+  return async function check(domain) {
+    const tld = tldOf(domain);
+    const server = await serverFor(tld);
+    if (!server) return { domain, status: 'unknown', note: 'no RDAP or whois server for .' + tld };
+    if (!queues.has(server)) queues.set(server, new HostQueue(1, gapMs));
+    const text = await queues.get(server).run(() => run(['-h', server, domain], timeoutMs));
+    return { domain, ...whoisStatus(text), via: 'whois' };
+  };
 }

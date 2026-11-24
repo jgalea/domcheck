@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createChecker, serverFor, serversFor, statusFromCode, toDomains, verifyTlds } from '../lib.mjs';
+import { createChecker, createWhoisChecker, serverFor, serversFor, statusFromCode, toDomains, verifyTlds, whoisStatus } from '../lib.mjs';
 
 test('bare names expand to each TLD, full domains pass through', () => {
   assert.deepEqual(toDomains(['Foo', 'bar.io', '# note', '', 'https://Baz.app/path'], ['com', 'app']), [
@@ -93,4 +93,20 @@ test('the queue never runs more than its concurrency at once', async () => {
 test('a malformed bootstrap is rejected', () => {
   assert.throws(() => serversFor({ services: null }));
   assert.throws(() => serversFor({}));
+});
+
+test('whois replies are read conservatively', () => {
+  assert.equal(whoisStatus('NOT FOUND').status, 'available');
+  assert.equal(whoisStatus('Domain Name: foo.io\nRegistrar: X').status, 'taken');
+  assert.equal(whoisStatus('Query rate limit exceeded').status, 'unknown');
+  assert.equal(whoisStatus(null).status, 'unknown');
+});
+
+test('whois checker finds the server through IANA, then asks it', async () => {
+  const calls = [];
+  const run = async (args) => { calls.push(args.join(' ')); return args[1] === 'whois.iana.org' ? 'whois:        whois.nic.example' : 'No match for domain'; };
+  const check = createWhoisChecker({ run, gapMs: 0 });
+  const r = await check('foo.zz');
+  assert.equal(r.status, 'available');
+  assert.deepEqual(calls, ['-h whois.iana.org zz', '-h whois.nic.example foo.zz']);
 });
