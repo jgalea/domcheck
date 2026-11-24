@@ -2,6 +2,20 @@
   "name": "domcheck",
   "version": "0.1.0",
   "description": "Bulk domain availability checker using RDAP, the registries' free public lookup service",
+  "keywords": [
+    "domain",
+    "availability",
+    "rdap",
+    "whois",
+    "cli",
+    "bulk"
+  ],
+  "homepage": "https://github.com/jgalea/domcheck",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jgalea/domcheck.git"
+  },
+  "bugs": "https://github.com/jgalea/domcheck/issues",
   "type": "module",
   "bin": {
     "domcheck": "./domcheck.mjs"

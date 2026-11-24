@@ -11,7 +11,11 @@ domcheck asks each registry's RDAP service whether a domain is registered. RDAP 
 
 ## Install
 
-Needs Node 20 or later. No dependencies.
+```sh
+brew install jgalea/tools/domcheck
+```
+
+Or from source, with Node 20 or later (no dependencies):
 
 ```sh
 git clone https://github.com/jgalea/domcheck
