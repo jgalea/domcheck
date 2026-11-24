@@ -1,0 +1,21 @@
+{
+  "name": "domcheck",
+  "version": "0.1.0",
+  "description": "Bulk domain availability checker using RDAP, the registries' free public lookup service",
+  "type": "module",
+  "bin": {
+    "domcheck": "./domcheck.mjs"
+  },
+  "files": [
+    "domcheck.mjs",
+    "lib.mjs"
+  ],
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "author": "Jean Galea",
+  "license": "MIT"
+}
